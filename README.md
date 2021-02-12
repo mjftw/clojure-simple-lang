@@ -1,5 +1,7 @@
 # simple-lang
 
+*WORK IN PROGRESS*
+
 An implementation of the small step semantics SIMPLE language as described in [Understanding Computation](https://computationbook.com/) by Tom Stuart.  
 This implementation uses Clojure as the metalanguage rather than the book's choice, Ruby.
 
