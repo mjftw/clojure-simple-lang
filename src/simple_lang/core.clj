@@ -35,3 +35,9 @@
         (reducible? left) (->Mult-e (reduce-e left) right)
         (reducible? right) (->Mult-e left (reduce-e right))
         :else (->Number-e (* (reduce-e left) (reduce-e right)))))))
+
+(defn run [expression]
+  (println (inspect expression))
+  (if (reducible? expression)
+    (recur (reduce-e expression))
+    expression))
