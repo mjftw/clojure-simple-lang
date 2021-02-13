@@ -1,4 +1,4 @@
-(ns simple-lang.expressions)
+(ns simple-lang.core)
 
 (defprotocol Expression
   (reducible? [this])

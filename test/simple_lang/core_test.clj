@@ -1,6 +1,6 @@
-(ns simple-lang.expressions-test
+(ns simple-lang.core-test
   (:require [clojure.test :refer :all]
-            [simple-lang.expressions :refer :all]))
+            [simple-lang.core :refer :all]))
 
 (deftest Number-e
   (let [exp (->Number-e 5)]
