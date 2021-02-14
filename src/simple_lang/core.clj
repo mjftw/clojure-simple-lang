@@ -72,6 +72,40 @@
       [(->DoNothing-e)
        (assoc env name expression)])))
 
+(defrecord Sequence-e [head tail]
+  Expression
+  (reducible? [this] true)
+  (->str [this] (str (->str (:head this)) "; " (->str (:tail this))))
+  (reduce-e [this env]
+    (if (= head (->DoNothing-e))
+      [tail env]
+      (let [[next-exp next-env] (reduce-e head env)]
+        [(->Sequence-e next-exp tail) next-env]))))
+
+(defrecord Boolean-e [value]
+  Expression
+  (reducible? [this] false)
+  (->str [this] (case (:value this)
+                  true "true"
+                  false "false"))
+  (reduce-e [this env] [(:value this) env]))
+
+(defrecord If-e [condition consequence alternative]
+  Expression
+  (reducible? [this] true)
+  (->str [this] (str "if (" (->str condition) "){"
+                     (->str consequence) "} else{"
+                     (->str alternative) "}"))
+  (reduce-e [this env]
+    (if (reducible? condition)
+      [(->If-e (first (reduce-e condition env))
+               consequence
+               alternative)
+       env]
+      (cond
+        (= condition (->Boolean-e true)) [consequence env]
+        (= condition (->Boolean-e false)) [alternative env]))))
+
 (defn run [expression]
   (loop [exp expression env {}]
     (println (str (inspect exp) " - " env))
