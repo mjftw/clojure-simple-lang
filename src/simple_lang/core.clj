@@ -12,7 +12,7 @@
   Expression
   (reducible? [this] false)
   (->str [this] (str (:value this)))
-  (reduce-e [this env] (:value this)))
+  (reduce-e [this env] [(:value this) env]))
 
 (defrecord Add-e [left right]
   Expression
@@ -21,9 +21,18 @@
   (reduce-e [this env]
     (let [left (:left this) right (:right this)]
       (cond
-        (reducible? left) (->Add-e (reduce-e left env) right)
-        (reducible? right) (->Add-e left (reduce-e right env))
-        :else (->Number-e (+ (reduce-e left env) (reduce-e right env)))))))
+        (reducible? left) [(->Add-e
+                            (first (reduce-e left env))
+                            right)
+                           env]
+        (reducible? right) [(->Add-e
+                             left
+                             (first (reduce-e right env)))
+                            env]
+        :else [(->Number-e (+
+                            (first (reduce-e left env))
+                            (first (reduce-e right env))))
+               env]))))
 
 (defrecord Mult-e [left right]
   Expression
@@ -32,28 +41,41 @@
   (reduce-e [this env]
     (let [left (:left this) right (:right this)]
       (cond
-        (reducible? left) (->Mult-e (reduce-e left env) right)
-        (reducible? right) (->Mult-e left (reduce-e right env))
-        :else (->Number-e (* (reduce-e left env) (reduce-e right env)))))))
+        (reducible? left) [(->Mult-e
+                            (first (reduce-e left env))
+                            right)
+                           env]
+        (reducible? right) [(->Mult-e
+                             left
+                             (first (reduce-e right env)))
+                            env]
+        :else [(->Number-e (*
+                            (first (reduce-e left env))
+                            (first (reduce-e right env))))
+               env]))))
 
-(defrecord EnvChange-e [environment]
+(defrecord DoNothing-e []
   Expression
   (reducible? [this] false)
-  (->str [this] (str "env-change: " (:environment this)))
-  (reduce-e [this env] this))
+  (->str [this] "do-nothing")
+  (reduce-e [this env] [this env]))
 
-(defrecord Assign-e [name, expression]
+(defrecord Assign-e [name expression]
   Expression
   (reducible? [this] true)
   (->str [this] (str (:name this) "=" (->str (:expression this))))
   (reduce-e [this env]
     (let [name (:name this) expression (:expression this)])
     (if (reducible? expression)
-      (->Assign-e name (reduce-e expression env))
-      (->EnvChange-e (assoc env name expression)))))
+      [(->Assign-e name (first (reduce-e expression env)))
+       env]
+      [(->DoNothing-e)
+       (assoc env name expression)])))
 
 (defn run [expression]
-  (println (inspect expression))
-  (if (reducible? expression)
-    (recur (reduce-e expression {}))
-    expression))
+  (loop [exp expression env {}]
+    (println (str (inspect exp) " - " env))
+    (if (reducible? exp)
+      (let [[next-exp next-env] (reduce-e exp env)]
+        (recur next-exp next-env))
+      exp)))

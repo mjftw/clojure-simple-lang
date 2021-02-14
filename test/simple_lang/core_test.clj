@@ -7,21 +7,31 @@
     (testing "is not reducible"
       (is (= false (reducible? exp))))
     (testing "reducing yields the value"
-      (is (= 5 (reduce-e exp {}))))))
+      (is (= 5 (first (reduce-e exp {})))))))
 
 (deftest Add-e
   (let [exp (->Add-e (->Number-e 7) (->Number-e 8))]
     (testing "is reducible"
       (is (= true (reducible? exp))))
     (testing "reducing yields correct number"
-      (is (= (->Number-e (+ 7 8)) (reduce-e exp {}))))))
+      (is (= (->Number-e (+ 7 8)) (first (reduce-e exp {})))))))
 
 (deftest Mult-e
   (let [exp (->Mult-e (->Number-e 10) (->Number-e 11))]
     (testing "is reducible"
       (is (= true (reducible? exp))))
     (testing "reducing yields correct number"
-      (is (= (->Number-e (* 10 11)) (reduce-e exp {}))))))
+      (is (= (->Number-e (* 10 11)) (first (reduce-e exp {})))))))
+
+(deftest Assign-e
+  (testing "causes env change"
+    (let [num (->Number-e 42)]
+      (= num (second (->Assign-e "foo" num))))))
+
+(deftest Assign-e
+  (testing "reduces then causes env change"
+    (let [exp (->Mult-e (->Number-e 10) (->Number-e 11))]
+      (= (->Number-e (* 10 11)) (second (->Assign-e "foo" exp))))))
 
 (deftest run-machine
   (testing "running gives expected result"
