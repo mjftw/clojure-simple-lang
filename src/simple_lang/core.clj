@@ -109,12 +109,12 @@
 (defrecord LessThan-e [left right]
   Expression
   (reducible? [this] true)
-  (->str [this] (str (:left this) " < " (:right this)))
+  (->str [this] (str (->str (:left this)) " < " (->str (:right this))))
   (reduce-e [this env]
     (let [{left :left right :right} this]
       (cond
-        (reducible? left) (->LessThan-e (first (reduce-e left env)) right)
-        (reducible? right) (->LessThan-e left (first (reduce-e right env)))
+        (reducible? left) [(->LessThan-e (first (reduce-e left env)) right) env]
+        (reducible? right) [(->LessThan-e left (first (reduce-e right env))) env]
         :else (let [lval (first (reduce-e left env)) rval (first (reduce-e right env))]
                 (if (< lval rval)
                   (->Boolean-e true)
@@ -123,12 +123,12 @@
 (defrecord GreaterThan-e [left right]
   Expression
   (reducible? [this] true)
-  (->str [this] (str (:left this) " > " (:right this)))
+  (->str [this] (str (->str (:left this)) " > " (->str (:right this))))
   (reduce-e [this env]
     (let [{left :left right :right} this]
       (cond
-        (reducible? left) (->LessThan-e (first (reduce-e left env)) right)
-        (reducible? right) (->LessThan-e left (first (reduce-e right env)))
+        (reducible? left) [(->LessThan-e (first (reduce-e left env)) right) env]
+        (reducible? right) [(->LessThan-e left (first (reduce-e right env))) env]
         :else (let [lval (first (reduce-e left env)) rval (first (reduce-e right env))]
                 (if (> lval rval)
                   (->Boolean-e true)
@@ -137,21 +137,46 @@
 (defrecord EqualTo-e [left right]
   Expression
   (reducible? [this] true)
-  (->str [this] (str (:left this) " == " (:right this)))
+  (->str [this] (str (->str (:left this)) " == " (->str (:right this))))
   (reduce-e [this env]
     (let [{left :left right :right} this]
       (cond
-        (reducible? left) (->LessThan-e (first (reduce-e left env)) right)
-        (reducible? right) (->LessThan-e left (first (reduce-e right env)))
+        (reducible? left) [(->LessThan-e (first (reduce-e left env)) right) env]
+        (reducible? right) [(->LessThan-e left (first (reduce-e right env))) env]
         :else (let [lval (first (reduce-e left env)) rval (first (reduce-e right env))]
                 (if (= lval rval)
                   (->Boolean-e true)
                   (->Boolean-e false)))))))
 
-(defn run [expression]
-  (loop [exp expression env {}]
-    (println (str (inspect exp) " - " env))
-    (if (reducible? exp)
-      (let [[next-exp next-env] (reduce-e exp env)]
-        (recur next-exp next-env))
-      exp)))
+(defrecord Variable-e [name]
+  Expression
+  (reducible? [this] true)
+  (->str [this] (str "var[" (:name this) "]"))
+  (reduce-e [this env] [(env name) env]))
+
+(defrecord While-e [condition body]
+  Expression
+  (reducible? [this] true)
+  (->str [this] (str "while(" (->str condition) "){" (->str body) "}"))
+  (reduce-e [this env]
+    [(->If-e condition (->Sequence-e body this) (->DoNothing-e)) env]))
+
+(defn strenv [env]
+  (str "{"
+       (->>
+        env
+        (map (fn [[name val]] (str name ": " (inspect val))))
+        (interpose ", ")
+        vec
+        (apply str))
+       "}"))
+
+(defn run
+  ([expression] (run expression {}))
+  ([expression env]
+   (loop [exp expression env env]
+     (println (str (inspect exp) " #" (strenv env)))
+     (if (reducible? exp)
+       (let [[next-exp next-env] (reduce-e exp env)]
+         (recur next-exp next-env))
+       exp))))

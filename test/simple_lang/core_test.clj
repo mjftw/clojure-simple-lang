@@ -42,4 +42,11 @@
                  (->Number-e 2)
                  (->Number-e 3)))
                (->Number-e 4))]
-      (is (= (->Number-e 11) (run exp))))))
+      (is (= (->Number-e 11) (run exp)))))
+
+  (testing "this causes an error - why?"
+    (run
+     (->If-e (->LessThan-e (->Variable-e "bar") (->Number-e 5))
+             (->DoNothing-e)
+             (->DoNothing-e))
+     {"bar" (->Number-e 3)})))
